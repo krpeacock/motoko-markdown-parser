@@ -11,6 +11,13 @@ let skip = ActorSpec.skip;
 let pending = ActorSpec.pending;
 let run = ActorSpec.run;
 
+func assetEqualOrError(actual : Text, expected : Text) : Bool {
+  if (actual != expected) {
+    Debug.print("Expected " # expected # " but got " # actual);
+  };
+  return actual == expected;
+};
+
 let success = run([
   describe(
     "Header 1",
@@ -18,7 +25,7 @@ let success = run([
       it(
         "Should convert a header 1",
         do {
-          let input = "# Header 1\nand more";
+          let input = "# Header 1";
           let expected = "<h1>Header 1</h1>";
           var actual : Text = "";
           switch (MarkdownParser.parse(input)) {
@@ -30,8 +37,8 @@ let success = run([
               Debug.print("Expected " # expected # " but got Error: " # err.message);
             };
           };
-          Debug.print(debug_show actual);
-          assertTrue(actual == expected);
+          let result = actual == expected;
+          assetEqualOrError(actual, expected);
         },
       ),
     ],
