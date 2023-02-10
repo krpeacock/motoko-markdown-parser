@@ -1,0 +1,13 @@
+{
+    "canisters": {
+        "markdown": {
+            "type": "motoko",
+            "main": "src/markdown/main.mo"
+        }
+    },
+    "defaults": {
+        "build": {
+            "packtool": "mops sources"
+        }
+    }
+}
