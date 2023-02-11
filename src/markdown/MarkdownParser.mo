@@ -18,8 +18,17 @@ module {
     // #Image : Text;
   };
 
-  let spacePredicate = #predicate(func(c : Char) : Bool { c == ' ' });
-  let newLinePredicate = #predicate(func(c : Char) : Bool { c == '\n' });
+  let spacePattern = #char ' ';
+  let header1Pattern = #text "# ";
+  let header2Pattern = #text "## ";
+  let header3Pattern = #text "### ";
+  let header4Pattern = #text "#### ";
+  let header5Pattern = #text "##### ";
+  let header6Pattern = #text "###### ";
+
+  let linkPattern = #text "[";
+  let linkPatternEnd = #text "](";
+  let linkPatternEnd2 = #text ")";
 
   public type ParseError = {
     message : Text;
@@ -74,17 +83,102 @@ module {
 
   func parseLine(line : Text) : ASTParseResult {
     // Check if the line starts with a hash symbol
-    if (Text.startsWith(line, #char '#')) {
+    if (Text.startsWith(line, header1Pattern)) {
       // Extract the text following the hash symbol
-      let text = Text.trimStart(line, #char '#');
+      let text = Text.trimStart(line, header1Pattern);
 
       // Trim any leading or trailing whitespace
-      let trimmed = Text.trim(text, spacePredicate);
+      let trimmed = Text.trim(text, spacePattern);
 
       // Return the header in HTML format
       return #ok({
         kind = "header";
         depth = ?1;
+        children = null;
+        content = ?#Text trimmed;
+
+      });
+    };
+
+    if (Text.startsWith(line, header2Pattern)) {
+      // Extract the text following the hash symbol
+      let text = Text.trimStart(line, header2Pattern);
+
+      // Trim any leading or trailing whitespace
+      let trimmed = Text.trim(text, spacePattern);
+
+      // Return the header in HTML format
+      return #ok({
+        kind = "header";
+        depth = ?2;
+        children = null;
+        content = ?#Text trimmed;
+
+      });
+    };
+
+    if (Text.startsWith(line, header3Pattern)) {
+      // Extract the text following the hash symbol
+      let text = Text.trimStart(line, header3Pattern);
+
+      // Trim any leading or trailing whitespace
+      let trimmed = Text.trim(text, spacePattern);
+
+      // Return the header in HTML format
+      return #ok({
+        kind = "header";
+        depth = ?3;
+        children = null;
+        content = ?#Text trimmed;
+
+      });
+    };
+
+    if (Text.startsWith(line, header4Pattern)) {
+      // Extract the text following the hash symbol
+      let text = Text.trimStart(line, header4Pattern);
+
+      // Trim any leading or trailing whitespace
+      let trimmed = Text.trim(text, spacePattern);
+
+      // Return the header in HTML format
+      return #ok({
+        kind = "header";
+        depth = ?4;
+        children = null;
+        content = ?#Text trimmed;
+
+      });
+    };
+
+    if (Text.startsWith(line, header5Pattern)) {
+      // Extract the text following the hash symbol
+      let text = Text.trimStart(line, header5Pattern);
+
+      // Trim any leading or trailing whitespace
+      let trimmed = Text.trim(text, spacePattern);
+
+      // Return the header in HTML format
+      return #ok({
+        kind = "header";
+        depth = ?5;
+        children = null;
+        content = ?#Text trimmed;
+
+      });
+    };
+
+    if (Text.startsWith(line, header6Pattern)) {
+      // Extract the text following the hash symbol
+      let text = Text.trimStart(line, header6Pattern);
+
+      // Trim any leading or trailing whitespace
+      let trimmed = Text.trim(text, spacePattern);
+
+      // Return the header in HTML format
+      return #ok({
+        kind = "header";
+        depth = ?6;
         children = null;
         content = ?#Text trimmed;
 
