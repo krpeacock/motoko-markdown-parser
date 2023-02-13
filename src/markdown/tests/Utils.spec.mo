@@ -26,16 +26,88 @@ let success = run([
       it(
         "should return the substring",
         do {
+          assertTrue(
+            assetEqualOrError(
+              Utils.textSubstring("Hello, World!", 0, 5),
+              "Hello",
+            ),
+          );
 
-          Debug.print("Test: " # Utils.textSubstring("Hello, World!", 0, 5));
+        },
+      ),
+      it(
+        "should return the substring from the middle",
+        do {
+          assertTrue(
+            assetEqualOrError(
+              Utils.textSubstring("Hello, World!", 7, 5),
+              "World",
+            ),
+          );
+
+        },
+      ),
+      it(
+        "should handle out of bounds",
+        do {
+          assertTrue(
+            assetEqualOrError(
+              Utils.textSubstring("Hello, World!", 0, 100),
+              "Hello, World!",
+            ),
+          );
+        },
+      ),
+      it(
+        "should handle negative length",
+        do {
+          Debug.print("Test: " # Utils.textSubstring("Hello, World!", 0, -1));
           assertTrue(
 
-             assetEqualOrError(
-              Utils.textSubstring("Hello, World!", 0, 5),
-              "Hello"
-            ));
-          
-        }
+            assetEqualOrError(
+              Utils.textSubstring("Hello, World!", 0, -1),
+              "",
+            ),
+          );
+        },
       ),
-    ]
-  )]);
+    ],
+  ),
+  describe(
+    "textIndexOf",
+    [
+      it(
+        "should return the index of the first occurrence",
+        do {
+          assertTrue(
+            Utils.textIndexOf("Hello, World!", #text "World") == 7,
+          );
+        },
+      ),
+      it(
+        "should return -1 if the substring is not found",
+        do {
+          assertTrue(
+            Utils.textIndexOf("Hello, World!", #text "Bird!") == -1,
+          );
+        },
+      ),
+      it(
+        "should return -1 if the substring is empty",
+        do {
+          assertTrue(
+            Utils.textIndexOf("Hello, World!", #text "") == -1,
+          );
+        },
+      ),
+      it(
+        "should return -1 if the string is empty",
+        do {
+          assertTrue(
+            Utils.textIndexOf("", #text "World") == -1,
+          );
+        },
+      ),
+    ],
+  ),
+]);
