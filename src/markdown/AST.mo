@@ -12,9 +12,4 @@ module {
     value : Text;
   };
 
-  public type Paragraph = {
-    kind : "paragraph";
-    children : [Node];
-  };
-
 };

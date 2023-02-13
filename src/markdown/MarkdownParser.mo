@@ -15,10 +15,21 @@ module {
   public type StaticPhrasingContent = {
     #Text : Text;
     #Strong : Text;
-    // #Image : Text;
+    #Collection : [StaticPhrasingContent];
+    #Image : {
+      alt : Text;
+      src : Text;
+      title : ?Text;
+    };
+    #Link : {
+      href : Text;
+      title : ?Text;
+      children : [StaticPhrasingContent];
+    };
   };
 
   let spacePattern = #char ' ';
+  let newlinePattern = #text "\n";
   let header1Pattern = #text "# ";
   let header2Pattern = #text "## ";
   let header3Pattern = #text "### ";
@@ -29,6 +40,26 @@ module {
   let linkPattern = #text "[";
   let linkPatternEnd = #text "](";
   let linkPatternEnd2 = #text ")";
+
+  let imagePattern = #text "![";
+  let imagePatternEnd = #text "](";
+  let imagePatternEnd2 = #text ")";
+
+  let strongPattern = #text "**";
+  let strongPatternEnd = #text "**";
+
+  let emPattern = #text "*";
+  let emPatternEnd = #text "*";
+
+  let italicPattern = #text "_";
+  let italicPatternEnd = #text "_";
+
+  let codePattern = #text "`";
+  let codePatternEnd = #text "`";
+
+  let codeBlockPattern = #text "```";
+  let codeBlockPatternEnd = #text "```";
+
 
   public type ParseError = {
     message : Text;
@@ -89,13 +120,14 @@ module {
 
       // Trim any leading or trailing whitespace
       let trimmed = Text.trim(text, spacePattern);
+      let content = parseInlineElements(trimmed);
 
       // Return the header in HTML format
       return #ok({
         kind = "header";
         depth = ?1;
         children = null;
-        content = ?#Text trimmed;
+        content = ?content;
 
       });
     };
@@ -186,12 +218,90 @@ module {
     };
 
     // Base case
+
+    let content = parseInlineElements(line);
     return #ok {
       kind = "paragraph";
-      content = ?#Text line;
+      content = ?content;
       depth = null;
       children = null;
     };
+  };
+
+  func parseInlineElements (line: Text) : StaticPhrasingContent {
+    let elements = Buffer.fromArray<StaticPhrasingContent>([]);
+
+    // A Line may contain multiple inline elements
+    // Known elements are links, images, bold, italic, and inline code
+    // We will parse each element and return a list of AST nodes
+
+    // Check if the line contains a link
+    if (Text.contains(line, linkPattern)) {
+      // The link text contains all the text between the square brackets
+      var linkText = Text.trimStart(line, linkPattern);
+      let linkTextEnd = textIndexOf(linkText, linkPatternEnd, 0);
+
+      Debug.print("Link text End: " # debug_show linkTextEnd);
+      linkText := textSubstring(linkText, 0, linkTextEnd);
+     
+
+      Debug.print("Link text: " # linkText);
+
+
+
+      Debug.print("Link text: " # linkText);
+
+      // Extract the link URL
+      let linkURL = Text.trimEnd(linkText, linkPatternEnd);
+      Debug.print("Link url: " # linkURL);
+
+      // Extract the link text
+      linkText := Text.trimStart(linkURL, linkPatternEnd);
+      Debug.print("Link text: " # linkText);
+
+      // Trim any leading or trailing whitespace
+      let trimmed = Text.trim(linkText, spacePattern);
+      Debug.print("Trimmed: " # trimmed);
+
+     
+      elements.add(#Link {
+        href = linkURL;
+        children = [#Text trimmed];
+        title = null;
+      });
+  
+    }
+
+    else if (Text.contains(line, imagePattern)) {
+      // Extract the link text
+      var linkText = Text.trimStart(line, imagePattern);
+
+      // Extract the link URL
+      let linkURL = Text.trimEnd(linkText, linkPatternEnd);
+
+      // Extract the link text
+      linkText := Text.trimStart(linkURL, linkPatternEnd);
+
+      // Trim any leading or trailing whitespace
+      let trimmed = Text.trim(linkText, spacePattern);
+
+      elements.add(#Image {
+        src = linkURL;
+        alt = trimmed;
+        title = null;
+      });
+    };
+
+    if(elements.size() == 0) {
+
+      return #Text line;
+
+    } else {
+      let collection = Buffer.toArray(elements);
+      return #Collection collection;
+
+    };
+  
   };
 
   public func renderASTToHTML(ast : [AstNode]) : Text {
@@ -200,6 +310,9 @@ module {
     for (node in Iter.fromArray(ast)) {
       output := output # renderNodeToHTML(node);
     };
+
+    // strip final newline
+    output := Text.trimEnd(output, newlinePattern);
 
     if (output == "") {
       return "Rendered HTML Error";
@@ -218,6 +331,9 @@ module {
           case (?#Text text) {
             content := text;
           };
+          case (?#Collection c) {
+            content := renderStaticPhrasingContentToHtml(c);
+          };
           case (_) { output := "<h1></h1>" };
         };
         switch (node.depth) {
@@ -233,6 +349,9 @@ module {
           case (?#Text text) {
             output := "<p>" # text # "</p>";
           };
+          case (?#Collection c) {
+            output := "<p>" # renderStaticPhrasingContentToHtml(c) # "</p>";
+          };
           case (_) { output := "<p></p>" };
         };
       };
@@ -243,6 +362,31 @@ module {
       return "Rendered HTML Error";
     };
     output := output # "\n";
+    output;
+  };
+
+  func renderStaticPhrasingContentToHtml (content : [StaticPhrasingContent]) : Text {
+    var output = "";
+
+    for (node in Iter.fromArray(content)) {
+      switch (node) {
+        case (#Text text) {
+          output := output # text;
+        };
+        case (#Link link) {
+          output := output # "<a href=\"" # link.href # "\">" # renderStaticPhrasingContentToHtml(link.children) # "</a>";
+        };
+        case (#Image image) {
+          output := output # "<img src=\"" # image.src # "\" alt=\"" # image.alt # "\">";
+        };
+        case (_) { output := output # "" };
+      };
+    };
+
+    if (output == "") {
+      return "Rendered HTML Error";
+    };
+
     output;
   };
 

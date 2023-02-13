@@ -60,6 +60,7 @@ MIT
   - [ ] Table
   - [ ] Definition
   - [ ] Footnote Definition
+  - [ ] Comment
 
 - [ ] Add support for all inline elements
 
@@ -80,6 +81,7 @@ MIT
   - [ ] Break
   - [ ] InlineMath
   - [ ] DisplayMath
+  - [ ] Inline Comment
 
 - [ ] Support for inline HTML
 
