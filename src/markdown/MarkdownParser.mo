@@ -24,8 +24,7 @@ module {
     };
     #Link : {
       href : Text;
-      title : ?Text;
-      children : [StaticPhrasingContent];
+      children : StaticPhrasingContent;
     };
   };
 
@@ -270,12 +269,6 @@ module {
     var locatingIndex = true;
     var count = 0;
     while (locatingIndex) {
-
-      Debug.print("linkStartIndex: " # debug_show linkStartIndex);
-      Debug.print("linkContentsEndIndex: " # debug_show linkContentsEndIndex);
-      Debug.print("linkUrlStartIndex: " # debug_show linkUrlStartIndex);
-      Debug.print("linkEndIndex: " # debug_show linkEndIndex);
-
       if (textArray[linkStartIndex] == '[') {
         foundStartIndex := true;
       };
@@ -309,7 +302,6 @@ module {
       };
 
       count := count + 1;
-      Debug.print("Count: " # debug_show count);
       if (count >= line.size()) {
         Debug.print("Error: Link parsing failed");
         return #Text line;
@@ -317,19 +309,20 @@ module {
 
     };
 
-    Debug.print("Link start index: " # debug_show linkStartIndex);
-    Debug.print("Link contents end index: " # debug_show linkContentsEndIndex);
-    Debug.print("Link url start index: " # debug_show linkUrlStartIndex);
-    Debug.print("Link end index: " # debug_show linkEndIndex);
-
     var fullLinkText = "";
 
     for (i in Iter.range(linkStartIndex, linkEndIndex)) {
       fullLinkText := fullLinkText # Text.fromChar(textArray[i]);
     };
 
+    var beforeLinkText = "";
     var linkContents = "";
     var linkUrl = "";
+    var afterLinkText = "";
+
+    for (i in Iter.range(0, linkStartIndex - 1)) {
+      beforeLinkText := beforeLinkText # Text.fromChar(textArray[i]);
+    };
 
     for (i in Iter.range(linkStartIndex + 1, linkContentsEndIndex - 1)) {
       linkContents := linkContents # Text.fromChar(textArray[i]);
@@ -339,103 +332,124 @@ module {
       linkUrl := linkUrl # Text.fromChar(textArray[i]);
     };
 
-    Debug.print("Link text: " # debug_show fullLinkText);
-    Debug.print("Link contents: " # debug_show linkContents);
-    Debug.print("Link url: " # debug_show linkUrl);
+    for (i in Iter.range(linkEndIndex + 1, sizeLessOne)) {
+      afterLinkText := afterLinkText # Text.fromChar(textArray[i]);
+    };
 
-    return #Link {
+    let link = #Link {
       kind = "link";
       href = linkUrl;
-      title = null;
-      children = [#Text linkContents];
-    };
-  
-};
-
-public func renderASTToHTML(ast : [AstNode]) : Text {
-  var output = "";
-
-  for (node in Iter.fromArray(ast)) {
-    output := output # renderNodeToHTML(node);
-  };
-
-  // strip final newline
-  output := Text.trimEnd(output, newlinePattern);
-
-  if (output == "") {
-    return "Rendered HTML Error";
-  };
-
-  output;
-};
-
-func renderNodeToHTML(node : AstNode) : Text {
-  var output = "";
-  var content = "";
-  switch (node.kind) {
-    case "header" {
-
-      switch (node.content) {
-        case (?#Text text) {
-          content := text;
-        };
-        case (?#Collection c) {
-          content := renderStaticPhrasingContentToHtml(c);
-        };
-        case (_) { output := "<h1></h1>" };
-      };
-      switch (node.depth) {
-        case (?1) {
-          output := "<h1>" # content # "</h1>";
-        };
-        case (_) { output := "<h6>" # content # "</h6>" };
-      };
+      children = parseInlineElements(linkContents);
     };
 
-    case "paragraph" {
-      switch (node.content) {
-        case (?#Text text) {
-          output := "<p>" # text # "</p>";
+    let elements : Buffer.Buffer<StaticPhrasingContent> = Buffer.fromArray([]);
+
+    if (beforeLinkText != "" or afterLinkText != "") {
+      if (beforeLinkText != "") {
+        elements.add(#Text beforeLinkText);
+      };
+
+      elements.add(link);
+
+      if (afterLinkText != "") {
+        elements.add(#Text afterLinkText);
+      };
+      let collection = Buffer.toArray(elements);
+      return #Collection collection;
+    };
+
+    link;
+  };
+
+  public func renderASTToHTML(ast : [AstNode]) : Text {
+    var output = "";
+
+    for (node in Iter.fromArray(ast)) {
+      output := output # renderNodeToHTML(node);
+    };
+
+    // strip final newline
+    output := Text.trimEnd(output, newlinePattern);
+
+    if (output == "") {
+      return "Rendered HTML Error";
+    };
+
+    output;
+  };
+
+  func renderNodeToHTML(node : AstNode) : Text {
+    var output = "";
+    var content = "";
+    switch (node.kind) {
+      case "header" {
+
+        switch (node.content) {
+          case (?#Text text) {
+            content := text;
+          };
+          case (?#Collection c) {
+            content := renderStaticPhrasingContentToHtml(c);
+          };
+          case (_) { output := "<h1></h1>" };
         };
-        case (?#Collection c) {
-          output := "<p>" # renderStaticPhrasingContentToHtml(c) # "</p>";
+        switch (node.depth) {
+          case (?1) {
+            output := "<h1>" # content # "</h1>";
+          };
+          case (_) { output := "<h6>" # content # "</h6>" };
         };
-        case (_) { output := "<p></p>" };
+      };
+
+      case "paragraph" {
+        switch (node.content) {
+          case (?#Text text) {
+            output := "<p>" # text # "</p>";
+          };
+          case (?#Collection c) {
+            output := "<p>" # renderStaticPhrasingContentToHtml(c) # "</p>";
+          };
+          case (_) { output := "<p></p>" };
+        };
+      };
+      case (_) { output := "<p></p>" };
+    };
+
+    if (output == "") {
+      return "Rendered HTML Error";
+    };
+    output := output # "\n";
+    output;
+  };
+
+  func renderStaticPhrasingContentToHtml(content : [StaticPhrasingContent]) : Text {
+    var output = "";
+
+    for (node in Iter.fromArray(content)) {
+      switch (node) {
+        case (#Text text) {
+          output := output # text;
+        };
+        case (#Link link) {
+          output := output # "<a href=\"" # link.href # "\">" # renderStaticPhrasingContentToHtml([link.children]) # "</a>";
+        };
+        case (#Image image) {
+          output := output # "<img src=\"" # image.src # "\" alt=\"" # image.alt # "\">";
+        };
+        case (#Collection c) {
+          for (node in Iter.fromArray(c)) {
+            output := output # renderStaticPhrasingContentToHtml([node]);
+          };
+        };
+        case (_) { output := output # "" };
       };
     };
-    case (_) { output := "<p></p>" };
-  };
 
-  if (output == "") {
-    return "Rendered HTML Error";
-  };
-  output := output # "\n";
-  output;
-};
-
-func renderStaticPhrasingContentToHtml(content : [StaticPhrasingContent]) : Text {
-  var output = "";
-
-  for (node in Iter.fromArray(content)) {
-    switch (node) {
-      case (#Text text) {
-        output := output # text;
-      };
-      case (#Link link) {
-        output := output # "<a href=\"" # link.href # "\">" # renderStaticPhrasingContentToHtml(link.children) # "</a>";
-      };
-      case (#Image image) {
-        output := output # "<img src=\"" # image.src # "\" alt=\"" # image.alt # "\">";
-      };
-      case (_) { output := output # "" };
+    if (output == "") {
+      return "Rendered HTML Error";
     };
-  };
 
-  if (output == "") {
-    return "Rendered HTML Error";
+    output;
   };
-
-  output;
-};
 
 };

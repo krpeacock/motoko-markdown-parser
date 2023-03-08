@@ -129,6 +129,46 @@ let success = run([
           assetEqualOrError(actual, expected);
         },
       ),
-    ]
-  )
+      it(
+        "should convert a link mixed with other text",
+        do {
+          let input = "This is a [Link](https://www.google.com)";
+          let expected = "<p>This is a <a href=\"https://www.google.com\">Link</a></p>";
+          var actual : Text = "";
+          switch (MarkdownParser.parse(input)) {
+            case (#ok result) {
+              actual := result;
+            };
+            case (#err err) {
+              Debug.print("Error parsing Link mixed with other text");
+              Debug.print("Expected " # expected # " but got Error: " # err.message);
+            };
+          };
+          let result = actual == expected;
+          Debug.print("Result: " # actual);
+          assetEqualOrError(actual, expected);
+        },
+      ),
+      it(
+        "should convert a link with text before and after",
+        do {
+          let input = "This is a [Link](https://www.google.com) with text before and after";
+          let expected = "<p>This is a <a href=\"https://www.google.com\">Link</a> with text before and after</p>";
+          var actual : Text = "";
+          switch (MarkdownParser.parse(input)) {
+            case (#ok result) {
+              actual := result;
+            };
+            case (#err err) {
+              Debug.print("Error parsing Link with text before and after");
+              Debug.print("Expected " # expected # " but got Error: " # err.message);
+            };
+          };
+          let result = actual == expected;
+          Debug.print("Result: " # actual);
+          assetEqualOrError(actual, expected);
+        },
+      ),
+    ],
+  ),
 ]);
