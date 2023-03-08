@@ -6,8 +6,8 @@ test:
 test_linux:
 	lib/linux/moc -r $(shell mops sources) -wasi-system-api src/markdown/tests/Test.mo
 
-test_utils_linux:
-	lib/linux/moc -r $(shell mops sources) -wasi-system-api src/markdown/tests/Utils.spec.mo
+test_text_linux:
+	lib/linux/moc -r $(shell mops sources) -wasi-system-api src/markdown/tests/Text.spec.mo
 
 
 watch:

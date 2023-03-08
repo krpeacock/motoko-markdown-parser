@@ -1,4 +1,4 @@
-import Text "mo:base/Text";
+import Text "./Text";
 import Iter "mo:base/Iter";
 import Result "mo:base/Result";
 import Debug "mo:base/Debug";
@@ -239,25 +239,54 @@ module {
     if (Text.contains(line, linkPattern)) {
       // The link text contains all the text between the square brackets
       var linkText = Text.trimStart(line, linkPattern);
-      let linkTextEnd = textIndexOf(linkText, linkPatternEnd, 0);
-
-      Debug.print("Link text End: " # debug_show linkTextEnd);
-      linkText := textSubstring(linkText, 0, linkTextEnd);
+      let linkTextEnd = Text.indexOf(linkText,linkPatternEnd);
+      switch linkTextEnd {
+        case (?end) {
+          linkText := Text.substring(linkText, 0, end);
+        };
+        case (null) {
+          return #Text line;
+        };
+      };
      
 
       Debug.print("Link text: " # linkText);
 
+      var prior = "";
+      var linkURL = "";
+      var rest = "";
 
+      // Find index of the link URL start
+      switch (Text.indexOf(line, linkPatternEnd)) {
+        case (?start) {
+          let linkURLEnd = Text.indexOf(line, linkPatternEnd2);
 
-      Debug.print("Link text: " # linkText);
+          var count
+          for(i in Text.toIter(line)) {
+            if (i < start) {
+              prior := prior + Text.fromChar(i);
+            } else if (i > start) {
+              rest := rest + Text.fromChar(i);
+            };
+          };
+          
+        };
+        case (null) {
+          return #Text line;
+        };
+      };
 
-      // Extract the link URL
-      let linkURL = Text.trimEnd(linkText, linkPatternEnd);
-      Debug.print("Link url: " # linkURL);
+      var linkUrlTrimmed = "";
+      
+      // create a pattern of all the characters leading up to the link URL start
+      let linkURLStartPattern = Text.substring(line, 0, linkURLStart);
+      
+  
 
-      // Extract the link text
-      linkText := Text.trimStart(linkURL, linkPatternEnd);
-      Debug.print("Link text: " # linkText);
+      // Find index of the link URL end
+      let linkURLEnd = Text.indexOf(line, linkPatternEnd, linkURLStart + 1);
+
+      
 
       // Trim any leading or trailing whitespace
       let trimmed = Text.trim(linkText, spacePattern);
