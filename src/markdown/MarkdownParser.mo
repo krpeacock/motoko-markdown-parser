@@ -1,5 +1,6 @@
 import Text "./Text";
 import Iter "mo:base/Iter";
+import Array "mo:base/Array";
 import Result "mo:base/Result";
 import Debug "mo:base/Debug";
 import Buffer "mo:base/Buffer";
@@ -59,7 +60,6 @@ module {
 
   let codeBlockPattern = #text "```";
   let codeBlockPatternEnd = #text "```";
-
 
   public type ParseError = {
     message : Text;
@@ -228,7 +228,7 @@ module {
     };
   };
 
-  func parseInlineElements (line: Text) : StaticPhrasingContent {
+  func parseInlineElements(line : Text) : StaticPhrasingContent {
     let elements = Buffer.fromArray<StaticPhrasingContent>([]);
 
     // A Line may contain multiple inline elements
@@ -238,90 +238,10 @@ module {
     // Check if the line contains a link
     if (Text.contains(line, linkPattern)) {
       // The link text contains all the text between the square brackets
-      var linkText = Text.trimStart(line, linkPattern);
-      let linkTextEnd = Text.indexOf(linkText,linkPatternEnd);
-      switch linkTextEnd {
-        case (?end) {
-          linkText := Text.substring(linkText, 0, end);
-        };
-        case (null) {
-          return #Text line;
-        };
-      };
-     
-
-      Debug.print("Link text: " # linkText);
-
-      var prior = "";
-      var linkURL = "";
-      var rest = "";
-
-      // Find index of the link URL start
-      switch (Text.indexOf(line, linkPatternEnd)) {
-        case (?start) {
-          let linkURLEnd = Text.indexOf(line, linkPatternEnd2);
-
-          var count
-          for(i in Text.toIter(line)) {
-            if (i < start) {
-              prior := prior + Text.fromChar(i);
-            } else if (i > start) {
-              rest := rest + Text.fromChar(i);
-            };
-          };
-          
-        };
-        case (null) {
-          return #Text line;
-        };
-      };
-
-      var linkUrlTrimmed = "";
-      
-      // create a pattern of all the characters leading up to the link URL start
-      let linkURLStartPattern = Text.substring(line, 0, linkURLStart);
-      
-  
-
-      // Find index of the link URL end
-      let linkURLEnd = Text.indexOf(line, linkPatternEnd, linkURLStart + 1);
-
-      
-
-      // Trim any leading or trailing whitespace
-      let trimmed = Text.trim(linkText, spacePattern);
-      Debug.print("Trimmed: " # trimmed);
-
-     
-      elements.add(#Link {
-        href = linkURL;
-        children = [#Text trimmed];
-        title = null;
-      });
-  
-    }
-
-    else if (Text.contains(line, imagePattern)) {
-      // Extract the link text
-      var linkText = Text.trimStart(line, imagePattern);
-
-      // Extract the link URL
-      let linkURL = Text.trimEnd(linkText, linkPatternEnd);
-
-      // Extract the link text
-      linkText := Text.trimStart(linkURL, linkPatternEnd);
-
-      // Trim any leading or trailing whitespace
-      let trimmed = Text.trim(linkText, spacePattern);
-
-      elements.add(#Image {
-        src = linkURL;
-        alt = trimmed;
-        title = null;
-      });
+      elements.add(processLink(line));
     };
 
-    if(elements.size() == 0) {
+    if (elements.size() == 0) {
 
       return #Text line;
 
@@ -330,93 +250,192 @@ module {
       return #Collection collection;
 
     };
+
+  };
+
+  func processLink(line : Text) : StaticPhrasingContent {
+    let textArray = Iter.toArray(Text.toIter(line));
+    let size = line.size();
+    let sizeLessOne : Nat = size - 1;
+
+    var linkStartIndex = 0;
+    var foundStartIndex = false;
+    var linkContentsEndIndex = sizeLessOne;
+    var foundContentsEndIndex = false;
+    var linkUrlStartIndex = sizeLessOne;
+    var foundUrlStartIndex = false;
+    var linkEndIndex = sizeLessOne;
+    var foundEndIndex = false;
+
+    var locatingIndex = true;
+    var count = 0;
+    while (locatingIndex) {
+
+      Debug.print("linkStartIndex: " # debug_show linkStartIndex);
+      Debug.print("linkContentsEndIndex: " # debug_show linkContentsEndIndex);
+      Debug.print("linkUrlStartIndex: " # debug_show linkUrlStartIndex);
+      Debug.print("linkEndIndex: " # debug_show linkEndIndex);
+
+      if (textArray[linkStartIndex] == '[') {
+        foundStartIndex := true;
+      };
+      if (not foundStartIndex) {
+        linkStartIndex := linkStartIndex + 1;
+      };
+
+      if (textArray[linkContentsEndIndex] == ']') {
+        foundContentsEndIndex := true;
+      };
+      if (not foundContentsEndIndex) {
+        linkContentsEndIndex := linkContentsEndIndex - 1;
+      };
+
+      if (textArray[linkEndIndex] == ')') {
+        foundEndIndex := true;
+      };
+      if (not foundEndIndex) {
+        linkEndIndex := linkEndIndex - 1;
+      };
+
+      if (textArray[linkUrlStartIndex] == '(') {
+        foundUrlStartIndex := true;
+      };
+      if (not foundUrlStartIndex) {
+        linkUrlStartIndex := linkUrlStartIndex - 1;
+      };
+
+      if (foundUrlStartIndex and foundContentsEndIndex and foundStartIndex and foundEndIndex) {
+        locatingIndex := false;
+      };
+
+      count := count + 1;
+      Debug.print("Count: " # debug_show count);
+      if (count >= line.size()) {
+        Debug.print("Error: Link parsing failed");
+        return #Text line;
+      };
+
+    };
+
+    Debug.print("Link start index: " # debug_show linkStartIndex);
+    Debug.print("Link contents end index: " # debug_show linkContentsEndIndex);
+    Debug.print("Link url start index: " # debug_show linkUrlStartIndex);
+    Debug.print("Link end index: " # debug_show linkEndIndex);
+
+    var fullLinkText = "";
+
+    for (i in Iter.range(linkStartIndex, linkEndIndex)) {
+      fullLinkText := fullLinkText # Text.fromChar(textArray[i]);
+    };
+
+    var linkContents = "";
+    var linkUrl = "";
+
+    for (i in Iter.range(linkStartIndex + 1, linkContentsEndIndex - 1)) {
+      linkContents := linkContents # Text.fromChar(textArray[i]);
+    };
+
+    for (i in Iter.range(linkUrlStartIndex + 1, linkEndIndex - 1)) {
+      linkUrl := linkUrl # Text.fromChar(textArray[i]);
+    };
+
+    Debug.print("Link text: " # debug_show fullLinkText);
+    Debug.print("Link contents: " # debug_show linkContents);
+    Debug.print("Link url: " # debug_show linkUrl);
+
+    return #Link {
+      kind = "link";
+      href = linkUrl;
+      title = null;
+      children = [#Text linkContents];
+    };
   
+};
+
+public func renderASTToHTML(ast : [AstNode]) : Text {
+  var output = "";
+
+  for (node in Iter.fromArray(ast)) {
+    output := output # renderNodeToHTML(node);
   };
 
-  public func renderASTToHTML(ast : [AstNode]) : Text {
-    var output = "";
+  // strip final newline
+  output := Text.trimEnd(output, newlinePattern);
 
-    for (node in Iter.fromArray(ast)) {
-      output := output # renderNodeToHTML(node);
-    };
-
-    // strip final newline
-    output := Text.trimEnd(output, newlinePattern);
-
-    if (output == "") {
-      return "Rendered HTML Error";
-    };
-
-    output;
+  if (output == "") {
+    return "Rendered HTML Error";
   };
 
-  func renderNodeToHTML(node : AstNode) : Text {
-    var output = "";
-    var content = "";
-    switch (node.kind) {
-      case "header" {
+  output;
+};
 
-        switch (node.content) {
-          case (?#Text text) {
-            content := text;
-          };
-          case (?#Collection c) {
-            content := renderStaticPhrasingContentToHtml(c);
-          };
-          case (_) { output := "<h1></h1>" };
+func renderNodeToHTML(node : AstNode) : Text {
+  var output = "";
+  var content = "";
+  switch (node.kind) {
+    case "header" {
+
+      switch (node.content) {
+        case (?#Text text) {
+          content := text;
         };
-        switch (node.depth) {
-          case (?1) {
-            output := "<h1>" # content # "</h1>";
-          };
-          case (_) { output := "<h6>" # content # "</h6>" };
+        case (?#Collection c) {
+          content := renderStaticPhrasingContentToHtml(c);
         };
+        case (_) { output := "<h1></h1>" };
       };
-
-      case "paragraph" {
-        switch (node.content) {
-          case (?#Text text) {
-            output := "<p>" # text # "</p>";
-          };
-          case (?#Collection c) {
-            output := "<p>" # renderStaticPhrasingContentToHtml(c) # "</p>";
-          };
-          case (_) { output := "<p></p>" };
+      switch (node.depth) {
+        case (?1) {
+          output := "<h1>" # content # "</h1>";
         };
-      };
-      case (_) { output := "<p></p>" };
-    };
-
-    if (output == "") {
-      return "Rendered HTML Error";
-    };
-    output := output # "\n";
-    output;
-  };
-
-  func renderStaticPhrasingContentToHtml (content : [StaticPhrasingContent]) : Text {
-    var output = "";
-
-    for (node in Iter.fromArray(content)) {
-      switch (node) {
-        case (#Text text) {
-          output := output # text;
-        };
-        case (#Link link) {
-          output := output # "<a href=\"" # link.href # "\">" # renderStaticPhrasingContentToHtml(link.children) # "</a>";
-        };
-        case (#Image image) {
-          output := output # "<img src=\"" # image.src # "\" alt=\"" # image.alt # "\">";
-        };
-        case (_) { output := output # "" };
+        case (_) { output := "<h6>" # content # "</h6>" };
       };
     };
 
-    if (output == "") {
-      return "Rendered HTML Error";
+    case "paragraph" {
+      switch (node.content) {
+        case (?#Text text) {
+          output := "<p>" # text # "</p>";
+        };
+        case (?#Collection c) {
+          output := "<p>" # renderStaticPhrasingContentToHtml(c) # "</p>";
+        };
+        case (_) { output := "<p></p>" };
+      };
     };
-
-    output;
+    case (_) { output := "<p></p>" };
   };
+
+  if (output == "") {
+    return "Rendered HTML Error";
+  };
+  output := output # "\n";
+  output;
+};
+
+func renderStaticPhrasingContentToHtml(content : [StaticPhrasingContent]) : Text {
+  var output = "";
+
+  for (node in Iter.fromArray(content)) {
+    switch (node) {
+      case (#Text text) {
+        output := output # text;
+      };
+      case (#Link link) {
+        output := output # "<a href=\"" # link.href # "\">" # renderStaticPhrasingContentToHtml(link.children) # "</a>";
+      };
+      case (#Image image) {
+        output := output # "<img src=\"" # image.src # "\" alt=\"" # image.alt # "\">";
+      };
+      case (_) { output := output # "" };
+    };
+  };
+
+  if (output == "") {
+    return "Rendered HTML Error";
+  };
+
+  output;
+};
 
 };

@@ -113,7 +113,7 @@ let success = run([
         "Should convert a link",
         do {
           let input = "[Link](https://www.google.com)";
-          let expected = "<p><a href=\"https://www.google.com\" alt=\"Link\">Link</a></p>";
+          let expected = "<p><a href=\"https://www.google.com\">Link</a></p>";
           var actual : Text = "";
           switch (MarkdownParser.parse(input)) {
             case (#ok result) {

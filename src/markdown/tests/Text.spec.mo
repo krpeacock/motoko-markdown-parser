@@ -170,7 +170,7 @@ let success = run([
       it(
         "should find a character",
         do {
-          switch (Text.indexOf("abc", #char Char.from("b"))) {
+          switch (Text.indexOf("abc", #char 'b')) {
             case (null) {
               Debug.print("Expected to find a character");
               false
