@@ -3,6 +3,9 @@
 test:
 	lib/darwin/moc -r $(shell mops sources) -wasi-system-api src/markdown/tests/Test.mo
 
+test_utils:
+	lib/darwin/moc -r $(shell mops sources) -wasi-system-api src/markdown/tests/Utils.spec.mo
+
 test_linux:
 	lib/linux/moc -r $(shell mops sources) -wasi-system-api src/markdown/tests/Test.mo
 
