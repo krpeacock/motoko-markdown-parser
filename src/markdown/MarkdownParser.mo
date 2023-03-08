@@ -276,6 +276,7 @@ module {
         linkStartIndex := linkStartIndex + 1;
       };
 
+      // Since the link contents may contain a closing square bracket, we need to find the last one
       if (textArray[linkContentsEndIndex] == ']') {
         foundContentsEndIndex := true;
       };
